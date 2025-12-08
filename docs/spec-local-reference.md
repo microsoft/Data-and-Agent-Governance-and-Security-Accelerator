@@ -2,6 +2,26 @@
 
 This guide documents every field that appears in the working `spec.local.json` **and** the sanitized `spec.dspm.template.json`. Use it to understand what each parameter drives inside `run.ps1` and the downstream scripts.
 
+---
+
+## Quick Start
+
+**New to the spec file?** Start with the annotated example:
+
+📄 **[spec-example.json](./spec-example.json)** — A complete example with realistic (fictional) values and inline comments explaining each section.
+
+**To create your spec file:**
+```powershell
+# Option 1: Copy from the example (recommended for learning)
+Copy-Item ./docs/spec-example.json ./spec.local.json
+
+# Option 2: Copy from the template (minimal starting point)
+Copy-Item ./spec.dspm.template.json ./spec.local.json
+```
+
+Then edit `spec.local.json` with your actual Azure resource IDs and configuration.
+
+---
 
 ## Core environment
 

@@ -68,6 +68,12 @@ Yes. `scripts/governance/dspmPurview/12-Create-DlpPolicy.ps1` uses Exchange Onli
 - `07-Enable-Diagnostics.ps1` enables Diagnostic Settings on each Foundry/Cognitive Services resource listed in the spec and ships them to the specified Log Analytics workspace. Those logs power Defender for AI detections and give you platform-level visibility that Unified Audit can’t provide.
 - Together they close the gap: Unified Audit proves what users did inside Microsoft 365, while Azure diagnostics prove what the AI infrastructure processed or attempted.
 
+## How does Purview DSPM use the Foundry diagnostics stream?
+- `30-Foundry-RegisterResources.ps1` links every listed Azure AI Foundry workspace/project to its diagnostic stream so Purview knows which resource emitted which prompts and posture signals.
+- `07-Enable-Diagnostics.ps1` pushes Foundry logs and metrics into Log Analytics; Purview ingests those signals to validate the **Secure interactions for enterprise AI apps** recommendation (prompt capture plus Content Safety/policy enforcement).
+- With telemetry flowing, DSPM can correlate Foundry resources with sensitivity labels, DLP policies, and KYD capture to raise alerts when chats touch sensitive data or a workspace drifts from the prescribed guardrails.
+- The same telemetry flows into DSPM dashboards and compliance exports (`17-Export-ComplianceInventory.ps1`, `21-Export-Audit.ps1`) so auditors can prove prompts/responses were monitored and retained per policy.
+
 ## Why does a deleted Foundry account or project still show up in DSPM for AI?
 - Microsoft Purview DSPM for AI retains historical telemetry and risk assessments so compliance teams can investigate past activity. Removing the Azure AI Foundry account/project (or deleting the subscription) stops **future** data collection, but previously captured evidence stays in the DSPM dashboard until retention policies purge it.
 - There is no automatic cleanup tied to account deletion because DSPM is designed for audit scenarios—erasing the record would break investigations and regulatory traceability.
@@ -100,3 +106,15 @@ Confirming what’s happening: the only part of the accelerator that “register
 	```powershell
 	./run.ps1 -Tags dspm defender -SpecPath ./spec.local.json   # from bash/zsh use: pwsh ./run.ps1 -Tags ...
 	```
+## KYD for Azure data
+For Azure resources (Foundry, Azure OpenAI, storage backing your models), KYD relies on two ingredients instead:
+1. **Secure Interactions policy** (the same one the accelerator reminds you to enable) so prompts route through Exchange and can be labeled, retained, or inspected.
+1. **Diagnostic settings from 07-Enable-Diagnostics.ps1 plus the Foundry registration/tagging scripts**, which tie each workspace/project to Log Analytics and Purview DSPM. Those diagnostics provide the Azure telemetry that KYD uses as context when it shows “this prompt hit sensitive data” in the Purview dashboards.
+
+
+## How will Azure Based data get labeled and honored by DSPM?
+
+1. DSPM doesn’t reach into Azure storage to stamp labels directly; it honors whatever classification signals Purview already has for those resources. Scans (Purview Data Map, Fabric/Purview ingestion, Defender for Cloud policy evaluations) tag tables, files, and data stores with sensitivity info.
+1. When you run the accelerator, scripts 02-Ensure-PurviewAccount.ps1, 03-Register-DataSource.ps1, and the scan modules onboard the Azure resources into Purview, so classification scans and rules apply the same labels you use elsewhere (e.g., “Confidential”).
+1. Those labels feed DSPM’s policy engine. When Diagnostics + Foundry registration report that a prompt accessed /subscriptions/.../storageAccounts/foo, DSPM cross-references the existing Purview classification metadata. If the storage account, container, or table is marked Confidential, DSPM issues a “Sensitive data touched” alert.
+1. Enforcement happens by tying those DSPM signals back into your policies: DLP (script 12), retention/labels (scripts 13–14), and Defender for Cloud guardrails. Purview doesn’t rewrite the data, but because it tracks lineage between Azure resources and labeled datasets, the DSPM dashboards can show when Foundry/AI traffic interacts with sensitive stores and ensure your policies respond.

@@ -4,9 +4,19 @@ param(
   [switch]   $DryRun,
   [switch]   $ContinueOnError,
   [switch]   $ConnectM365,
-  [string]   $M365UserPrincipalName
+  [string]   $M365UserPrincipalName,
+  [string]   $M365AppId,
+  [string]   $M365Organization,
+  [string]   $M365CertificateThumbprint,
+  [string]   $M365CertificatePath,
+  [string]   $M365CertificatePassword
 )
 if($M365UserPrincipalName){ $env:DAGA_M365_UPN = $M365UserPrincipalName } else { Remove-Item Env:DAGA_M365_UPN -ErrorAction SilentlyContinue }
+if(-not $M365AppId -and $env:DAGA_M365_APP_ID){ $M365AppId = $env:DAGA_M365_APP_ID }
+if(-not $M365Organization -and $env:DAGA_M365_ORGANIZATION){ $M365Organization = $env:DAGA_M365_ORGANIZATION }
+if(-not $M365CertificateThumbprint -and $env:DAGA_M365_CERT_THUMBPRINT){ $M365CertificateThumbprint = $env:DAGA_M365_CERT_THUMBPRINT }
+if(-not $M365CertificatePath -and $env:DAGA_M365_CERT_PATH){ $M365CertificatePath = $env:DAGA_M365_CERT_PATH }
+if(-not $M365CertificatePassword -and $env:DAGA_M365_CERT_PASSWORD){ $M365CertificatePassword = $env:DAGA_M365_CERT_PASSWORD }
 function Initialize-AutomationEnvironment {
   param([bool]$RequireExchange)
 
@@ -138,11 +148,13 @@ $plan = @(
 )
 
 # Filter by tags
-$selected = $plan.Where({
-  ($_.Tags | ForEach-Object { $expanded.Contains($_) }) -contains $true
-}) | Sort-Object Order
+$selected = @(
+  $plan.Where({
+    ($_.Tags | ForEach-Object { $expanded.Contains($_) }) -contains $true
+  }) | Sort-Object Order
+)
 
-if ($selected.Count -eq 0) {
+if ($selected.Length -eq 0) {
   Write-Host "No steps matched tags: $($Tags -join ', ')" -ForegroundColor Yellow
   exit 0
 }
@@ -171,16 +183,40 @@ foreach ($step in $selected) {
   $requiresM365 = $step.Tags -contains "m365"
   if ($requiresM365) {
     if (-not $ConnectM365) {
-      throw "Step '$($step.File)' requires Microsoft 365 connectivity. Re-run with -ConnectM365 -M365UserPrincipalName <UPN>."
-    }
-    if (-not $M365UserPrincipalName) {
-      throw "-ConnectM365 requires -M365UserPrincipalName to know which account to sign in with."
+      throw "Step '$($step.File)' requires Microsoft 365 connectivity. Re-run with -ConnectM365 plus either -M365UserPrincipalName or app-only parameters."
     }
     if (-not $exoSessionEstablished) {
-      Write-Host "Connecting to Exchange Online for compliance cmdlets..." -ForegroundColor Cyan
-      Connect-ExchangeOnline -UserPrincipalName $M365UserPrincipalName -ShowBanner:$false -CommandName $exoCmds | Out-Null
-      Write-Host "Connecting to Security & Compliance PowerShell..." -ForegroundColor Cyan
-      Connect-IPPSSession -UserPrincipalName $M365UserPrincipalName -ShowBanner:$false | Out-Null
+      $useInteractiveM365 = -not [string]::IsNullOrWhiteSpace($M365UserPrincipalName)
+      if ($useInteractiveM365) {
+        Write-Host "Connecting to Exchange Online for compliance cmdlets..." -ForegroundColor Cyan
+        Connect-ExchangeOnline -UserPrincipalName $M365UserPrincipalName -ShowBanner:$false -CommandName $exoCmds | Out-Null
+        Write-Host "Connecting to Security & Compliance PowerShell..." -ForegroundColor Cyan
+        Connect-IPPSSession -UserPrincipalName $M365UserPrincipalName -ShowBanner:$false | Out-Null
+      } else {
+        if (-not $M365AppId -or -not $M365Organization) {
+          throw "Provide either -M365UserPrincipalName for interactive auth or -M365AppId/-M365Organization plus certificate details for app-only connections."
+        }
+        $appExchangeParams = @{ AppId = $M365AppId; Organization = $M365Organization; ShowBanner = $false }
+        if ($M365CertificateThumbprint) {
+          $appExchangeParams['CertificateThumbprint'] = $M365CertificateThumbprint
+        } elseif ($M365CertificatePath) {
+          if (-not $M365CertificatePassword) {
+            throw "M365 certificate password is required when CertificateFilePath is provided."
+          }
+          $appExchangeParams['CertificateFilePath'] = $M365CertificatePath
+          $appExchangeParams['CertificatePassword'] = (ConvertTo-SecureString $M365CertificatePassword -AsPlainText -Force)
+        } else {
+          throw "Supply either M365CertificateThumbprint or M365CertificatePath for app-only authentication."
+        }
+        Write-Host "Connecting to Exchange Online via app-only authentication..." -ForegroundColor Cyan
+        Connect-ExchangeOnline @appExchangeParams -CommandName $exoCmds | Out-Null
+        Write-Host "Connecting to Security & Compliance PowerShell via app-only authentication..." -ForegroundColor Cyan
+        $appIPPSParams = @{}
+        foreach ($key in $appExchangeParams.Keys) {
+          if ($key -ne 'ShowBanner') { $appIPPSParams[$key] = $appExchangeParams[$key] }
+        }
+        Connect-IPPSSession @appIPPSParams | Out-Null
+      }
       $exoSessionEstablished = $true
     }
   }
