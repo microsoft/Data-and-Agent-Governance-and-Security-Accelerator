@@ -4,15 +4,21 @@ Enable Microsoft Purview Data Security Posture Management (DSPM) for AI to safeg
 
 <div align="center">
 
-[**SOLUTION OVERVIEW**](#solution-overview) | [**QUICK DEPLOY**](#quick-deploy) | [**BUSINESS SCENARIO**](#business-scenario) | [**SUPPORTING DOCUMENTATION**](#supporting-documentation)
+[**FEATURES**](#features) | [**GETTING STARTED**](#getting-started) | [**GUIDANCE**](#guidance) | [**RESOURCES**](#resources)
 
 </div>
 
 ---
 
-<h2><img src="./docs/images/readme/user-story.png" width="48" />
-User story
-</h2>
+## Important Security Notice
+
+This template, the application code and configuration it contains, has been built to showcase Microsoft Azure specific services and tools. We strongly advise our customers not to make this code part of their production environments without implementing or enabling additional security features.
+
+For a more comprehensive list of best practices and security recommendations for Intelligent Applications, [visit our official documentation](https://learn.microsoft.com/en-us/azure/ai-foundry/).
+
+---
+
+## <img src="./docs/images/readme/user-story.png" width="48" alt="User Story" /> User story
 
 Organizations deploying AI across Microsoft 365 Copilot, Azure AI Foundry, and custom agents face a common challenge: **how do you govern AI interactions at scale while maintaining compliance?**
 
@@ -30,9 +36,7 @@ Without automation, this requires significant manual configuration across multip
 
 ---
 
-<h2><img src="./docs/images/readme/solution-overview.png" width="48" />
-Solution overview
-</h2>
+## <img src="./docs/images/readme/solution-overview.png" width="48" alt="Solution Overview" /> Solution overview
 
 This accelerator orchestrates Azure and Microsoft 365 governance artifacts through PowerShell and Azure Developer CLI hooks:
 
@@ -45,7 +49,7 @@ This accelerator orchestrates Azure and Microsoft 365 governance artifacts throu
 
 ![Data Agent governance architecture](./docs/doc-images/architectureDAGSA.png)
 
-### Key features
+## Features
 
 <details open>
 <summary>Click to view the core capabilities provided by this accelerator</summary>
@@ -75,9 +79,9 @@ This accelerator orchestrates Azure and Microsoft 365 governance artifacts throu
 
 ---
 
-<h2><img src="./docs/images/readme/quick-deploy.png" width="48" />
-Quick deploy
-</h2>
+## Getting Started
+
+## <img src="./docs/images/readme/quick-deploy.png" width="48" alt="Quick Deploy" /> Quick deploy
 
 Deploy this solution to your Azure subscription using the Azure Developer CLI.
 
@@ -157,9 +161,9 @@ Use the [Azure pricing calculator](https://azure.microsoft.com/pricing/calculato
 
 ---
 
-<h2><img src="./docs/images/readme/business-scenario.png" width="48" />
-Business scenario
-</h2>
+## Guidance
+
+## <img src="./docs/images/readme/business-scenario.png" width="48" alt="Business Scenario" /> Business scenario
 
 ![DSPM for all services](./docs/doc-images/DSPM-for-all-services-steps.png)
 
@@ -197,9 +201,9 @@ With this accelerator, the team captures those requirements in a spec file, exec
 
 ---
 
-<h2><img src="./docs/images/readme/supporting-documentation.png" width="48" />
-Supporting documentation
-</h2>
+## Resources
+
+## <img src="./docs/images/readme/supporting-documentation.png" width="48" alt="Supporting Documentation" /> Supporting documentation
 
 | Document | Description |
 | -------- | ----------- |

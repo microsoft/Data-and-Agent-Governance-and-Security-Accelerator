@@ -1,0 +1,65 @@
+name: Template Validation
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays at midnight UTC
+    - cron: '0 0 * * 0'
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+jobs:
+  template_validation_job:
+    runs-on: ubuntu-latest
+    name: Validate Template Standards
+    environment: azd-template-gallery
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: microsoft/template-validation-action@Latest
+        id: validation
+        with:
+          validateAzd: ${{ vars.AZD_VALIDATE }}
+          useDevContainer: ${{ vars.AZD_USE_DEV_CONTAINER }}
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+          AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: print result
+        if: always()
+        run: cat ${{ steps.validation.outputs.resultFile }}
+
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '[Auto] Template Validation Failed';
+            const body = `Template validation failed. Please check the workflow run for details.\n\nWorkflow: ${context.workflow}\nRun: ${context.runId}`;
+            
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'template-validation'
+            });
+            
+            const existingIssue = issues.data.find(issue => issue.title === title);
+            
+            if (!existingIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['template-validation', 'automated']
+              });
+            }
