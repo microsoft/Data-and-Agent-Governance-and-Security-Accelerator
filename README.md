@@ -1,3 +1,9 @@
+<hr>
+<h3 align="center">
+     <b>⚠️ This repository is no longer maintained ⚠️</b>
+</h3>
+<hr>
+
 # Data Agent Governance and Security Accelerator
 
 Enable Microsoft Purview Data Security Posture Management (DSPM) for AI across Microsoft 365 Copilot, Microsoft Foundry, Microsoft Fabric, and custom AI solutions with a spec-driven deployment and governance workflow.
